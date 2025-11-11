@@ -27,8 +27,8 @@ export const API_ENDPOINTS = {
   statsRatings: build('/api/stats/ratings'),
 
   // Participants
-  participants: build('/api/participants'),
-  approvedParticipants: build('/api/participants?status=APPROVED'),
+  participants: build('/api/participants/view/'),
+  approvedParticipants: build('/api/participants/view/approved/'),
 
   // Ratings
   ratings: build('/api/ratings'),

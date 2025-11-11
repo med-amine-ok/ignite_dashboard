@@ -6,33 +6,69 @@ import { Star } from 'lucide-react';
 import { API_ENDPOINTS } from '@/config/api';
 
 interface ApprovedParticipant {
-  id: string;
+  id: number | string;
   name: string;
   email: string;
   phone: string;
-  rating: number;
-  approvedAt: string;
+  status: 'APPROVED' ;
+  submittedAt: string;
 }
 
-// Mock data - Replace with actual API call
-const mockApprovedParticipants: ApprovedParticipant[] = [
-  { id: '1', name: 'John Doe', email: 'john@example.com', phone: '+1234567890', rating: 4.8, approvedAt: '2024-01-15' },
-  { id: '3', name: 'Bob Johnson', email: 'bob@example.com', phone: '+1234567892', rating: 4.5, approvedAt: '2024-01-17' },
-  { id: '6', name: 'Emily Davis', email: 'emily@example.com', phone: '+1234567895', rating: 4.9, approvedAt: '2024-01-20' },
-  { id: '7', name: 'Michael Wilson', email: 'michael@example.com', phone: '+1234567896', rating: 4.2, approvedAt: '2024-01-21' },
-];
+
 
 const Approved = () => {
-  const [participants, setParticipants] = useState<ApprovedParticipant[]>(mockApprovedParticipants);
+  const [participants, setParticipants] = useState<ApprovedParticipant[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    // TODO: Fetch data from API_ENDPOINTS.approvedParticipants
-    // Example:
-    // fetch(API_ENDPOINTS.approvedParticipants)
-    //   .then(res => res.json())
-    //   .then(data => setParticipants(data));
-  }, []);
+      const controller = new AbortController();
+      let mounted = true;
+  
+      async function loadParticipants() {
+        setIsLoading(true);
+        try {
+          // Try to read token from localStorage. The project previously stored the
+          // access token either under `access_token` or (unfortunately) under
+          // `user` in some flows — try both.
+          const rawToken = localStorage.getItem('access_token') || localStorage.getItem('user');
+          if (!rawToken) console.warn('No access token found in localStorage');
+  
+          const headers: Record<string, string> = {};
+          if (rawToken) headers['Authorization'] = `Bearer ${rawToken}`;
+  
+          // Fetch only approved participants
+          const res = await fetch(API_ENDPOINTS.approvedParticipants, { signal: controller.signal, headers });
+          if (!res.ok) throw new Error(`Failed to fetch approved participants: ${res.status}`);
+          const data = await res.json();
+  
+          // Expecting paginated response with `results` array
+          const results = Array.isArray(data?.results) ? data.results : [];
+  
+          const mapped: ApprovedParticipant[] = results.map((p: any) => ({
+            id: p.id,
+            name: p.full_name || `${p.first_name || ''} ${p.last_name || ''}`.trim() || p.email || 'Unknown',
+            email: p.email || '',
+            phone: p.phone || '',
+            status: 'APPROVED' as const,
+            submittedAt: p.registered_at || p.updated_at || '',
+          }));
+  
+          if (mounted) setParticipants(mapped);
+        } catch (err) {
+          if ((err as any)?.name === 'AbortError') return;
+          console.error('Error loading approved participants', err);
+        } finally {
+          if (mounted) setIsLoading(false);
+        }
+      }
+  
+      loadParticipants();
+  
+      return () => {
+        mounted = false;
+        controller.abort();
+      };
+    }, []);
 
   const renderStars = (rating: number) => {
     return (
@@ -82,7 +118,7 @@ const Approved = () => {
                       <TableCell className="font-medium">{participant.name}</TableCell>
                       <TableCell>{participant.email}</TableCell>
                       <TableCell>{participant.phone}</TableCell>
-                      <TableCell>{renderStars(participant.rating)}</TableCell>
+                      {/* <TableCell>{renderStars(participant.rating)}</TableCell> */}
                     </TableRow>
                   ))}
                 </TableBody>
