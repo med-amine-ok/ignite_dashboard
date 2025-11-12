@@ -108,7 +108,6 @@ const Approved = () => {
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Phone</TableHead>
-                    <TableHead>Rating</TableHead>
   
                   </TableRow>
                 </TableHeader>

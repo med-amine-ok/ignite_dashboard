@@ -29,9 +29,8 @@ export const API_ENDPOINTS = {
   // Participants
   participants: build('/api/participants/view/'),
   approvedParticipants: build('/api/participants/view/approved/'),
-
-  // Ratings
-  ratings: build('/api/ratings'),
+  ratedParticipant: build(`/api/participants/ratings/`),
+  
 };
 
 export const API_BASE_URL = API_BASE;

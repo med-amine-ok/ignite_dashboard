@@ -8,30 +8,63 @@ import { API_ENDPOINTS } from '@/config/api';
 interface RatedParticipant {
   id: string;
   name: string;
-  email: string;
   averageRating: number;
   totalRatings: number;
 }
 
-// Mock data - Replace with actual API call
-const mockRatings: RatedParticipant[] = [
-  { id: '6', name: 'Emily Davis', email: 'emily@example.com', averageRating: 4.9, totalRatings: 24 },
-  { id: '1', name: 'John Doe', email: 'john@example.com', averageRating: 4.8, totalRatings: 21 },
-  { id: '3', name: 'Bob Johnson', email: 'bob@example.com', averageRating: 4.5, totalRatings: 18 },
-  { id: '7', name: 'Michael Wilson', email: 'michael@example.com', averageRating: 4.2, totalRatings: 15 },
-];
+
 
 const Ratings = () => {
-  const [ratings, setRatings] = useState<RatedParticipant[]>(mockRatings);
+  const [ratings, setRatings] = useState<RatedParticipant[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    // TODO: Fetch data from API_ENDPOINTS.ratings
-    // Example:
-    // fetch(API_ENDPOINTS.ratings)
-    //   .then(res => res.json())
-    //   .then(data => setRatings(data));
-  }, []);
+        const controller = new AbortController();
+        let mounted = true;
+    
+        async function loadParticipants() {
+          setIsLoading(true);
+          try {
+            // Try to read token from localStorage. The project previously stored the
+            // access token either under `access_token` or (unfortunately) under
+            // `user` in some flows — try both.
+            const rawToken = localStorage.getItem('access_token') || localStorage.getItem('user');
+            if (!rawToken) console.warn('No access token found in localStorage');
+    
+            const headers: Record<string, string> = {};
+            if (rawToken) headers['Authorization'] = `Bearer ${rawToken}`;
+    
+            // Fetch only approved participants
+            const res = await fetch(API_ENDPOINTS.ratedParticipant, { signal: controller.signal, headers });
+            if (!res.ok) throw new Error(`Failed to fetch rated participants: ${res.status}`);
+            const data = await res.json();
+    
+            // Expecting paginated response with `results` array
+            const results = Array.isArray(data?.results) ? data.results : [];
+    
+            const mapped: RatedParticipant[] = results.map((p: any) => ({
+              id: p.participant_id,
+              name: p.participant_name || 'Unknown',
+              averageRating: p.average_rating || 0,
+              totalRatings: p.total_ratings_count || 0,
+            }));
+    
+            if (mounted) setRatings(mapped);
+          } catch (err) {
+            if ((err as any)?.name === 'AbortError') return;
+            console.error('Error loading approved participants', err);
+          } finally {
+            if (mounted) setIsLoading(false);
+          }
+        }
+    
+        loadParticipants();
+    
+        return () => {
+          mounted = false;
+          controller.abort();
+        };
+      }, []);
 
   const renderStars = (rating: number) => {
     return (
@@ -86,11 +119,10 @@ const Ratings = () => {
                   </Avatar>
                   <div className="flex-1">
                     <h3 className="font-semibold text-foreground">{participant.name}</h3>
-                    <p className="text-sm text-muted-foreground">{participant.email}</p>
                   </div>
                   <div className="text-right">
                     {renderStars(participant.averageRating)}
-                    <p className="mt-1 text-sm text-muted-foreground">
+                    <p className="mt-1 mr-12 text-sm text-muted-foreground">
                       {participant.totalRatings} ratings
                     </p>
                   </div>
