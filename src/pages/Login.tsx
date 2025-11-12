@@ -45,13 +45,9 @@ const Login = () => {
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary/5 via-background to-primary/10 p-4">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="space-y-3 text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-            <Flame className="h-8 w-8 text-primary" />
+          <div className="mx-auto flex h-36 w-36 items-center justify-center">
+            <img src="/ignite_logo.svg" alt="Ignite Logo" />
           </div>
-          <CardTitle className="text-2xl font-bold">Ignite Dashboard</CardTitle>
-          <CardDescription>
-            Sign in to manage your public speaking event
-          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -90,7 +86,7 @@ const Login = () => {
                   Signing in...
                 </>
               ) : (
-                'Sign in'
+                'log in'
               )}
             </Button>
           </form>

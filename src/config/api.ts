@@ -23,8 +23,8 @@ export const API_ENDPOINTS = {
   logout: build('/api/accounts/logout/'),
   currentUser: build('/api/accounts/current_user/'),
   // Statistics
-  statsOverview: build('/api/stats/overview'),
-  statsRatings: build('/api/stats/ratings'),
+  statsOverview: build('/api/dashboard/export/'),
+  
 
   // Participants
   participants: build('/api/participants/view/'),

@@ -46,7 +46,9 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         <div className="flex h-full flex-col">
           {/* Logo */}
           <div className="flex h-16 items-center justify-between border-b border-border px-6">
-            <h1 className="text-xl font-bold text-primary">Ignite Dashboard</h1>
+            <div className="flex items-center align-middle">
+              <img src="/ignite_logo.svg" alt="Ignite Logo" className="h-auto w-24" />
+            </div>
             <Button
               variant="ghost"
               size="icon"
