@@ -38,7 +38,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const res = await fetch(API_ENDPOINTS.login, {
         method: 'POST',
-        credentials: 'include',
+        
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });

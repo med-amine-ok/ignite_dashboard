@@ -9,8 +9,12 @@
 import { Currency } from "lucide-react";
 
 const VITE_API_BASE = import.meta.env.VITE_API_BASE_URL as string | undefined;
-const USE_PROXY = !VITE_API_BASE || VITE_API_BASE === 'proxy';
-const API_BASE = USE_PROXY ? '' : VITE_API_BASE || 'http://127.0.0.1:8000';
+// Use the Vite dev proxy only during development when explicitly configured.
+// In production we should NOT fallback to a relative `/api` path because
+// that will point to the frontend host (e.g. Vercel) and likely 404.
+const IS_DEV = import.meta.env.DEV as boolean;
+const USE_PROXY = IS_DEV ? (!VITE_API_BASE || VITE_API_BASE === 'proxy') : false;
+const API_BASE = USE_PROXY ? '' : (VITE_API_BASE || 'https://ignite-backend-el33.onrender.c');
 
 function build(path: string) {
   const p = path.startsWith('/') ? path : `/${path}`;
