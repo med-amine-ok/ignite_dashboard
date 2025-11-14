@@ -85,7 +85,7 @@ const Submissions = () => {
       };
       if (rawToken) headers['Authorization'] = `Bearer ${rawToken}`;
 
-      const endpoint = `/api/participants/view/${id}/approve_reject/`;
+  const endpoint = API_ENDPOINTS.approveRejectParticipant(id);
 
       const actionMap: Record<Participant['status'], string> = {
         'APPROVED': 'approved',
