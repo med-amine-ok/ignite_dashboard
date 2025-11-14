@@ -45,11 +45,18 @@ const Ratings = () => {
             const mapped: RatedParticipant[] = results.map((p: any) => ({
               id: p.participant_id,
               name: p.participant_name || 'Unknown',
-              averageRating: p.average_rating || 0,
-              totalRatings: p.total_ratings_count || 0,
+              // Ensure numeric values (API may return strings or null)
+              averageRating: Number(p.average_rating) || 0,
+              totalRatings: Number(p.total_ratings_count) || 0,
             }));
-    
-            if (mounted) setRatings(mapped);
+
+            // Sort by highest averageRating first, then by totalRatings as a tie-breaker
+            const sorted = mapped.sort((a, b) => {
+              if (b.averageRating !== a.averageRating) return b.averageRating - a.averageRating;
+              return b.totalRatings - a.totalRatings;
+            });
+
+            if (mounted) setRatings(sorted);
           } catch (err) {
             if ((err as any)?.name === 'AbortError') return;
             console.error('Error loading approved participants', err);

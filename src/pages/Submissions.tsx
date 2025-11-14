@@ -1,9 +1,16 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { API_ENDPOINTS } from '@/config/api';
 
 interface Participant {
@@ -13,13 +20,15 @@ interface Participant {
   phone: string;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
   submittedAt: string;
+  // Preserve raw API object so we can show full details without extra fetch
+  raw?: any;
 }
-
 
 const Submissions = () => {
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [updatingId, setUpdatingId] = useState<number | string | null>(null);
+  const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -28,9 +37,6 @@ const Submissions = () => {
     async function loadParticipants() {
       setIsLoading(true);
       try {
-        // Try to read token from localStorage. The project previously stored the
-        // access token either under `access_token` or (unfortunately) under
-        // `user` in some flows — try both.
         const rawToken = localStorage.getItem('access_token') || localStorage.getItem('user');
         if (!rawToken) console.warn('No access token found in localStorage');
 
@@ -41,7 +47,6 @@ const Submissions = () => {
         if (!res.ok) throw new Error(`Failed to fetch participants: ${res.status}`);
         const data = await res.json();
 
-        // Expecting paginated response with `results` array
         const results = Array.isArray(data?.results) ? data.results : [];
 
         const mapped: Participant[] = results.map((p: any) => ({
@@ -51,6 +56,7 @@ const Submissions = () => {
           phone: p.phone || '',
           status: (p.status as Participant['status']) || 'PENDING',
           submittedAt: p.registered_at || p.updated_at || '',
+          raw: p,
         }));
 
         if (mounted) setParticipants(mapped);
@@ -80,25 +86,22 @@ const Submissions = () => {
       if (rawToken) headers['Authorization'] = `Bearer ${rawToken}`;
 
       const endpoint = `/api/participants/view/${id}/approve_reject/`;
-      
-      // Map status to action (action field is required by the API)
+
       const actionMap: Record<Participant['status'], string> = {
         'APPROVED': 'approved',
         'REJECTED': 'rejected',
         'PENDING': 'pending',
       };
       const action = actionMap[newStatus];
-      
-      // Log the request details for debugging
+
       console.log('Updating participant:', { endpoint, action, headers });
-      
+
       const res = await fetch(endpoint, {
         method: 'POST',
         headers,
         body: JSON.stringify({ action }),
       });
 
-      // Get response body for error details
       const responseText = await res.text();
       console.log('Response status:', res.status, 'Body:', responseText);
 
@@ -111,7 +114,6 @@ const Submissions = () => {
         }
       }
 
-      // Update local state
       setParticipants((prev) =>
         prev.map((p) => (p.id === id ? { ...p, status: newStatus } : p))
       );
@@ -132,6 +134,32 @@ const Submissions = () => {
     };
     return <Badge variant={variants[status]}>{status}</Badge>;
   };
+
+  // Fields to display in the details view (in desired order)
+  const detailFields = [
+    'first_name',
+    'last_name',
+    'discord_username',
+    'date_of_birth',
+    'wilaya',
+    'is_student',
+    'university',
+    'degree_and_major',
+    'occupation',
+    'knowledge_about_ignite',
+    'motivation',
+    'how_heard',
+    'has_public_speaking_experience',
+    'public_speaking_experience',
+    'presentation_language',
+    'talk_category',
+    'presentation_theme',
+    'theme_elaboration',
+    'duo_talk_preference',
+    'partner_name_and_relationship',
+    'interview_preference',
+    'additional_info',
+  ];
 
   return (
     <DashboardLayout>
@@ -156,7 +184,6 @@ const Submissions = () => {
                       <TableHead>Name</TableHead>
                       <TableHead>Email</TableHead>
                       <TableHead>Phone</TableHead>
-                      {/* <TableHead>Status</TableHead> */}
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -166,19 +193,18 @@ const Submissions = () => {
                         <TableCell className="font-medium">{participant.name}</TableCell>
                         <TableCell>{participant.email}</TableCell>
                         <TableCell>{participant.phone}</TableCell>
-                        {/* <TableCell>{getStatusBadge(participant.status)}</TableCell> */}
                         <TableCell className="space-x-2">
                           <Button
                             size="sm"
-                            variant={participant.status === 'APPROVED' ? 'default' : 'outline'}
+                            variant={participant.status === 'APPROVED' ? 'green' : 'outline'}
                             disabled={updatingId === participant.id}
                             onClick={() => updateParticipantStatus(participant.id, 'APPROVED')}
                           >
-                            {updatingId === participant.id ? 'Updating...' : 'Approve'}
+                            {updatingId === participant.id ? 'Updating...' : 'Approved'}
                           </Button>
                           <Button
                             size="sm"
-                            variant={participant.status === 'PENDING' ? 'default' : 'outline'}
+                            variant={participant.status === 'PENDING' ? 'yellow' : 'outline'}
                             disabled={updatingId === participant.id}
                             onClick={() => updateParticipantStatus(participant.id, 'PENDING')}
                           >
@@ -190,7 +216,14 @@ const Submissions = () => {
                             disabled={updatingId === participant.id}
                             onClick={() => updateParticipantStatus(participant.id, 'REJECTED')}
                           >
-                            {updatingId === participant.id ? 'Updating...' : 'Reject'}
+                            {updatingId === participant.id ? 'Updating...' : 'Rejected'}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant={selectedParticipant?.id === participant.id ? 'default' : 'outline'}
+                            onClick={() => setSelectedParticipant(participant)}
+                          >
+                            Details
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -201,6 +234,33 @@ const Submissions = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Modal dialog for participant details */}
+        <Dialog open={!!selectedParticipant} onOpenChange={(open) => { if (!open) setSelectedParticipant(null); }}>
+          <DialogContent className="max-w-[80vw]">
+            <DialogHeader>
+              <DialogTitle>Participant details</DialogTitle>
+            </DialogHeader>
+
+            <div className="mt-4 max-h-[70vh]  overflow-auto">
+              {selectedParticipant?.raw ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  {detailFields.map((key) => {
+                    const val = selectedParticipant.raw?.[key];
+                    return (
+                      <div key={key} className="flex flex-col">
+                        <div className="font-medium text-sm text-muted-foreground">{key.replace(/_/g, ' ')}</div>
+                        <div className="whitespace-pre-wrap break-words bg-muted/5 rounded-md p-2">{val === null || val === undefined ? '—' : String(val)}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div>No additional details available.</div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
