@@ -24,12 +24,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check for stored user on mount
+    // Check for stored user on mount to restore session after page refresh
     const storedUser = localStorage.getItem('user');
-    // if (storedUser && storedUser !== 'undefined') {
-    //   console.log('sotred user ' ,storedUser)
-    //   setUser(JSON.parse(storedUser));
-    // }
+    if (storedUser && storedUser !== 'undefined') {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch (e) {
+        console.warn('Failed to parse stored user:', e);
+        localStorage.removeItem('user');
+      }
+    }
     setIsLoading(false);
   }, []);
 
@@ -48,23 +52,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error(err.message || 'Login failed');
       }
 
-      console.log(Response);
-
       const res_data = await res.json();
-      const { message, data}  = res_data;
-      const access_token = data.access_token
-      const user = {
-        firstName : data.first_name,
-        lastName : data.last_name,   
-        id : data.id,
-        email : data.email,
-        role : data.role
-      }
-      setUser(user);
+      const { message, data } = res_data;
+      const access_token = data.access_token;
+      const userObj = {
+        firstName: data.first_name,
+        lastName: data.last_name,
+        id: data.id,
+        email: data.email,
+        role: data.role
+      };
+      setUser(userObj);
 
-      if(user)localStorage.setItem('user', JSON.stringify(user));
-      if (access_token) localStorage.setItem('user', access_token);
-      console.log("kolch riglou")
+      // Save user object and token separately to localStorage for session persistence
+      localStorage.setItem('user', JSON.stringify(userObj));
+      if (access_token) localStorage.setItem('access_token', access_token);
   
       navigate('/');
     } catch(e) {console.log('error before redircting ', e);}
